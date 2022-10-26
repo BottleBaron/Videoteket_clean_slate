@@ -1,6 +1,10 @@
 class Checkouthandler
 {
-    public static void LoanMovies(List<Movie> selectedMovies, Customer activeCustomer)
+    /// <summary>
+    /// Creates a new order and sets up relations for each selected movie to that order
+    /// </summary>
+    /// <returns>The new orders ordernumber</returns> 
+    public static int LoanMovies(List<Movie> selectedMovies, Customer activeCustomer)
     {
         int total_price = 0;
         foreach (var movie in selectedMovies)
@@ -16,9 +20,17 @@ class Checkouthandler
 
         foreach (var movie in selectedMovies)
         {
-            SqlWriter.sp_UpdateTable("movies", $"movies.order_id = {listofOrders.Last().customer_id}", $"movies.barcode_id = {movie.barcode_id}");
+            SqlWriter.sp_UpdateTable("movies", $"movies.order_id = {listofOrders.Last().order_number}", $"movies.barcode_id = {movie.barcode_id}");
         }
+
+        return listofOrders.Last().order_number;
     }
+
+    public static void ReturnMovies()
+    {
+
+    }
+
 
     public Customer TryLogin(int id)
     {
