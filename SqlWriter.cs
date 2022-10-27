@@ -76,7 +76,7 @@ static class SqlWriter
     /// <summary>
     /// SELECT ´columns´ FROM ´table´ INNER JOIN ´jointable´ ON ´joinparameter´;
     /// </summary>
-    public static List<T> sp_InnerJoinTables<T>(string table, string columns, string jointable, string joincolumns, string joinparameter)
+    public static List<T> sp_InnerJoinTables<T>(string columns, string joincolumns, string table, string jointable, string joinparameter)
     {
         string query = $"SELECT {columns}, {joincolumns} FROM {table} INNER JOIN {jointable} ON {joinparameter}";
         using (var connection = new MySqlConnection("Server=localhost;Database=videoteket;Uid=root;Pwd=samsis123"))
@@ -98,9 +98,9 @@ static class SqlWriter
     // MODIFYING METHODS
     //----------------
 
-    ///<summary>
+    /// <summary>
     /// INSERT INTO ´table´ VALUES (´values´)
-    ///</summary>
+    /// </summary>
     public static void sp_InsertInto(string table, string values)
     {
         string query = $"INSERT INTO {table} VALUES ({values});";
@@ -119,15 +119,15 @@ static class SqlWriter
         }
     }
 
-    ///<summary>
-    /// INSERT INTO ´table´ (´columns´) VALUES (´´)
-    ///</summary>
+    /// <summary>
+    /// INSERT INTO ´table´ (´columns´) VALUES (´values´)
+    /// </summary>
     public static void sp_InsertInto(string table, string columns, string values)
     {
         string query = $"INSERT INTO {table} ({columns}) VALUES ({values});";
         Console.WriteLine(query);
 
-        using (var connection = new MySqlConnection("Server=localhost;Database=videoteket;Uid=root;Pwd=samsis123"))
+        using (var connection = DBConnection())
         {
             try
             {
@@ -140,9 +140,9 @@ static class SqlWriter
         }
     }
 
-    ///<summary>
+    /// <summary>
     /// UPDATE ´table´ SET ´parameters´ WHERE ´condition´
-    ///</summary>
+    /// </summary>
     public static void sp_UpdateTable(string table, string parameters, string condition)
     {
         string query = $"UPDATE {table} SET {parameters} WHERE {condition};";
@@ -158,5 +158,49 @@ static class SqlWriter
                 throw e;
             }
         }
+    }
+
+    ///---------------------
+    /// FORMATTING METHODS
+    ///---------------------
+
+    /// <summary>
+    /// Formats string values into a single SQL-readable identifyer string
+    /// </summary>
+    public static string FormatIntoSqlString(string[] values)
+    {
+        string? formattedString = "";
+
+        foreach (var input in values)
+        {
+            if (ContainsExemptedValues(input)) return null;
+
+            formattedString += input + ',';
+        }
+        return formattedString;
+    }
+
+    ///<summary>
+    /// Checks a string for any exempted values eg. '*' or "DROP"
+    ///</summary>
+    ///<returns>
+    /// True: The string contains exempted values,
+    /// False: The string does not contain exempted values
+    ///</returns>
+    public static bool ContainsExemptedValues(string s)
+    {
+        char[] exemptedChars = new char[] { ',', '*', '<', '>', '=' };
+        string[] exemptedStrings = new string[] { "SELECT", "INSERT", "DROP", "ALTER", "UPDATE", "DELETE", "CREATE" };
+
+        foreach (var character in exemptedChars)
+        {
+            if (s.Contains(character)) return true;
+        }
+        foreach (var keyword in exemptedStrings)
+        {
+            if (s.ToUpper().Contains(keyword)) return true;
+        }
+
+        return false;
     }
 }
