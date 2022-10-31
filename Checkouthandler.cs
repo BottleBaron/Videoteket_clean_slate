@@ -1,4 +1,4 @@
-class Checkouthandler
+static class Checkouthandler
 {
     /// <summary>
     /// Creates a new order and sets up database relations for selected movies to that order
@@ -28,42 +28,37 @@ class Checkouthandler
     }
 
     ///<summary>
-    /// Disables relation between selectedmovies and their order and calculates any overdue price 
+    /// Disables relation between movies and their order and calculates any overdue price 
     ///</summary>
     ///<returns>The overdue total price</returns>
-    public static int ReturnMovies(List<Movie> selectedMovies)
+    public static int ReturnMovies(Order orderToReturn)
     {
         int returnPrice = 0;
 
-        List<Order> listOfOrders = SqlWriter.sp_SelectTable<Order>("order_number, final_return_date", "orders");
+        List<Movie> rentedMovies = SqlWriter.ExplicitSqlQuery<Movie>($"SELECT type_id, order_id, title, price_per_day " +
+       $"FROM movies WHERE order_id = {orderToReturn.order_number} INNER JOIN movie_types ON movies.type_id = movie_types_id");
 
-        foreach (var movie in selectedMovies)
+
+        if (DateTime.Now > orderToReturn.final_return_date)
         {
-            foreach (var order in listOfOrders)
+            foreach (var movie in rentedMovies)
             {
-                if (movie.order_id == order.order_number)
-                {
-                    if (DateTime.Now > order.final_return_date)
-                    {
-                        string dateDifferenceString = (order.final_return_date - DateTime.Now).TotalDays.ToString();
+                string dateDifferenceString = (orderToReturn.final_return_date - DateTime.Now).TotalDays.ToString();
 
-                        int daysSinceFinalReturn = Int32.Parse(dateDifferenceString);
+                int daysSinceFinalReturn = Int32.Parse(dateDifferenceString);
 
-                        if (daysSinceFinalReturn < 14) returnPrice += (movie.price_per_day * daysSinceFinalReturn);
+                if (daysSinceFinalReturn < 14) returnPrice += (movie.price_per_day * daysSinceFinalReturn);
 
-                        else returnPrice += (movie.price_per_day * 14);
-                    }
-                }
+                else returnPrice += (movie.price_per_day * 14);
+
+                SqlWriter.sp_UpdateTable("movies", "order_id = NULL", $"barcode_id = {movie.barcode_id}");
+                SqlWriter.sp_UpdateTable("movie_types", "current_stock + 1", $"id = {movie.type_id}");
             }
-
-            SqlWriter.sp_UpdateTable("movies", "order_id = NULL", $"barcode_id = {movie.barcode_id}");
-            SqlWriter.sp_UpdateTable("movie_types", "current_stock + 1", $"id = {movie.type_id}");
         }
-
         return returnPrice;
     }
 
-    public Customer TryLogin(int id)
+    public static Customer TryLogin(int id)
     {
         List<Customer> listOfCustomers = SqlWriter.sp_SelectTable<Customer>("id, first_name, last_name, email, telephone_number", "customers");
 
@@ -74,7 +69,7 @@ class Checkouthandler
         return null;
     }
 
-    public void CreateNewCustomer(string values)
+    public static void CreateNewCustomer(string values)
     {
         SqlWriter.sp_InsertInto("customers", values);
     }

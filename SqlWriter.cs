@@ -12,18 +12,20 @@ static class SqlWriter
     // SELECT METHODS
     // ---------------
 
-    public static void ExplicitSqlQuery(string query)
+    public static List<T> ExplicitSqlQuery<T>(string query)
     {
         using (var connection = DBConnection())
         {
             try
             {
-                connection.Query(query);
+                var returnValue = connection.Query<T>(query).ToList();
+                return returnValue;
             }
             catch (Exception e)
             {
                 throw e;
             }
+
         }
     }
 
@@ -79,7 +81,7 @@ static class SqlWriter
     public static List<T> sp_InnerJoinTables<T>(string columns, string joincolumns, string table, string jointable, string joinparameter)
     {
         string query = $"SELECT {columns}, {joincolumns} FROM {table} INNER JOIN {jointable} ON {joinparameter}";
-        using (var connection = new MySqlConnection("Server=localhost;Database=videoteket;Uid=root;Pwd=samsis123"))
+        using (var connection = DBConnection())
         {
             try
             {
@@ -106,7 +108,7 @@ static class SqlWriter
         string query = $"INSERT INTO {table} VALUES ({values});";
         Console.WriteLine(query);
 
-        using (var connection = new MySqlConnection("Server=localhost;Database=videoteket;Uid=root;Pwd=samsis123"))
+        using (var connection = DBConnection())
         {
             try
             {
@@ -147,7 +149,7 @@ static class SqlWriter
     {
         string query = $"UPDATE {table} SET {parameters} WHERE {condition};";
 
-        using (var connection = new MySqlConnection("Server=localhost;Database=videoteket;Uid=root;Pwd=samsis123"))
+        using (var connection = DBConnection())
         {
             try
             {

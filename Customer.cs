@@ -23,7 +23,7 @@ class Customer
         List<Movie> listOfMovies = SqlWriter.sp_InnerJoinTables<Movie>(
         "barcode_id, customer_id, order_id",
         "title, is_old, current_stock, price_per_day",
-        "movies", "movietypes", "movies.type_id = movie_types.id"
+        "movies", "movie_types", "movies.type_id = movie_types.id"
         );
 
         foreach (var order in listOfOrderIds)

@@ -1,6 +1,5 @@
 class GUI
 {
-    private Checkouthandler checkouthandler = new();
     private Customer activeCustomer = new();
 
     public void Init()
@@ -22,14 +21,14 @@ class GUI
                 int newId = SignUpMenu();
 
                 if (newId == 0) continue;
-                else checkouthandler.TryLogin(newId);
+                else Checkouthandler.TryLogin(newId);
             }
             // Try Login With ID
             else
             {
                 int inputID = Int32.Parse(input);
 
-                activeCustomer = checkouthandler.TryLogin(inputID);
+                activeCustomer = Checkouthandler.TryLogin(inputID);
 
                 if (activeCustomer == null) continue;
                 else break;
@@ -58,7 +57,16 @@ class GUI
 
             if (keyPress.Key == ConsoleKey.D1)
             {
-                //LoanMovieMenu();
+                List<Movie> selections = LoanMovieMenu();
+
+                if(selections.Count > 0)
+                {
+                    int newOrderId = Checkouthandler.LoanMovies(selections, activeCustomer);
+
+                    Order newOrder = SqlWriter.sp_SelectObject<Order>("order_number, customer_id, total_price, order_date, final_return_date", "orders", "order_number", newOrderId);
+
+                    string recieptString = PrintReciept(newOrder, false);
+                }  
             }
             else if (keyPress.Key == ConsoleKey.D2)
             {
@@ -96,7 +104,7 @@ class GUI
             Console.Write("Success! Account created.\nPress any key to log into your new account:");
             Console.ReadKey();
 
-            checkouthandler.CreateNewCustomer(Sqlstring);
+            Checkouthandler.CreateNewCustomer(Sqlstring);
             List<Customer> listOfCustomerIds = SqlWriter.sp_SelectTable<Customer>("id", "customers");
             return listOfCustomerIds.Last().id;
         }
@@ -115,12 +123,13 @@ class GUI
         List<Movie> listAllMovies = SqlWriter.sp_InnerJoinTables<Movie>(
         "barcode_id, customer_id, order_id",
         "title, is_old, current_stock, price_per_day",
-        "movies", "movietypes", "movies.type_id = movie_types.id"
+        "movies", "movie_types", "movies.type_id = movie_types.id"
         );
         List<Movie> displayChoices = SqlWriter.sp_SelectTable<Movie>("id, title, price_per_day", "movie_types");
 
         while (true)
         {
+            Console.WriteLine("Please select a movie to loan. You may loan a maximum of one copy of each movie:");
             foreach (var movietype in displayChoices)
             {
                 Console.WriteLine($"[{movietype.type_id}]. {movietype.title} | {movietype.current_stock} |");
@@ -140,10 +149,43 @@ class GUI
 
         foreach (var number in selections)
         {
+            // Removes movie doublettes
             foreach (var movie in selectedMovies)
             {
                 if (number == movie.type_id) selections.Remove(number);
             }
+
+            foreach (var movie in listAllMovies)
+            {
+                if (movie.current_stock > 0 && number == movie.type_id)
+                    selectedMovies.Add(movie);
+            }
         }
+
+        return selectedMovies;
+    }
+
+    private string PrintReciept(Order orderToPrint, bool isReturn)
+    {
+        string recieptString = "-- RECIEPT --\n";
+
+        recieptString += $"ORDER NUMBER: {orderToPrint.order_number}";
+  
+        recieptString += $"\nORDER DATE: {orderToPrint.order_date} || FINAL RETURN DATE: {orderToPrint.final_return_date}\n"; 
+
+        List<Movie> rentedMovies = SqlWriter.ExplicitSqlQuery<Movie>($"SELECT type_id, order_id, title, price_per_day " +
+        $"FROM movies WHERE order_id = {orderToPrint.order_number} INNER JOIN movie_types ON movies.type_id = movie_types_id");
+
+        foreach (var movie in rentedMovies)
+        {
+            recieptString += $"[{movie.type_id}] {movie.title} a. {movie.price_per_day}\n";
+        }
+
+        recieptString += $"\nTOTAL PRICE: {orderToPrint.total_price}\n";
+
+        if(isReturn) recieptString += "RETURNED [x]";
+        else recieptString += "RETURNED [x]";
+
+        return recieptString;
     }
 }
