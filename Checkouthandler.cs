@@ -21,6 +21,7 @@ class Checkouthandler
         foreach (var movie in selectedMovies)
         {
             SqlWriter.sp_UpdateTable("movies", $"movies.order_id = {listofOrderNumbers.Last().order_number}", $"movies.barcode_id = {movie.barcode_id}");
+            SqlWriter.sp_UpdateTable("movie_types", "current_stock - 1", $"id = {movie.type_id}");
         }
 
         return listofOrderNumbers.Last().order_number;
@@ -56,6 +57,7 @@ class Checkouthandler
             }
 
             SqlWriter.sp_UpdateTable("movies", "order_id = NULL", $"barcode_id = {movie.barcode_id}");
+            SqlWriter.sp_UpdateTable("movie_types", "current_stock + 1", $"id = {movie.type_id}");
         }
 
         return returnPrice;

@@ -20,8 +20,7 @@ class Customer
         List<Movie> loanedMovies = new();
 
         List<Order> listOfOrderIds = SqlWriter.sp_SelectTable<Order>("order_number, customer_id", "orders");
-        List<Movie> listOfMovies = SqlWriter.sp_InnerJoinTables<Movie>
-        (
+        List<Movie> listOfMovies = SqlWriter.sp_InnerJoinTables<Movie>(
         "barcode_id, customer_id, order_id",
         "title, is_old, current_stock, price_per_day",
         "movies", "movietypes", "movies.type_id = movie_types.id"
@@ -38,7 +37,12 @@ class Customer
             }
         }
 
+        foreach (var movie in loanedMovies)
+        {
+            Order orderForMovie = SqlWriter.sp_SelectObject<Order>("final_return_date", "order", "order_number", movie.order_id);
 
+            if (DateTime.Now > orderForMovie.final_return_date) { } // FIX: Mark as overdue and send bill
+        }
 
         return loanedMovies;
     }

@@ -2,8 +2,8 @@
 {
     private static void Main(string[] args)
     {
-        // Try login => get 1 customer => Do not update until nessecary
+        GUI gui = new();
 
-        // Cherry pick relevant DB data for each method
+        gui.Init();
     }
 }

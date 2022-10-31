@@ -30,7 +30,7 @@ static class SqlWriter
     /// <summary>
     /// SELECT ´columns´ FROM ´table´ WHERE ´identifyer´ = ´idValue´;
     /// </summary>
-    public static T sp_SelectObject<T>(string columns, string table, string identifyer, int idValue)
+    public static T sp_SelectObject<T>(string columns, string table, string identifyer, int? idValue)
     {
         string query = $"SELECT {columns} FROM {table} WHERE {identifyer} = {idValue}";
 
@@ -167,7 +167,7 @@ static class SqlWriter
     /// <summary>
     /// Formats string values into a single SQL-readable identifyer string
     /// </summary>
-    public static string FormatIntoSqlString(string[] values)
+    public static string FormatIntoSqlString(List<string> values)
     {
         string? formattedString = "";
 
