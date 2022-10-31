@@ -15,35 +15,4 @@ class Customer
         return $"{id} | {first_name} | {last_name} | {email} | {telephone_number}";
     }
 
-    public List<Movie> GetLoanedMovies()
-    {
-        List<Movie> loanedMovies = new();
-
-        List<Order> listOfOrderIds = SqlWriter.sp_SelectTable<Order>("order_number, customer_id", "orders");
-        List<Movie> listOfMovies = SqlWriter.sp_InnerJoinTables<Movie>(
-        "barcode_id, customer_id, order_id",
-        "title, is_old, current_stock, price_per_day",
-        "movies", "movie_types", "movies.type_id = movie_types.id"
-        );
-
-        foreach (var order in listOfOrderIds)
-        {
-            if (order.customer_id == id)
-            {
-                foreach (var movie in listOfMovies)
-                {
-                    if (movie.order_id == order.order_number && !movie.IsInStock) loanedMovies.Add(movie);
-                }
-            }
-        }
-
-        foreach (var movie in loanedMovies)
-        {
-            Order orderForMovie = SqlWriter.sp_SelectObject<Order>("final_return_date", "order", "order_number", movie.order_id);
-
-            if (DateTime.Now > orderForMovie.final_return_date) { } // FIX: Mark as overdue and send bill
-        }
-
-        return loanedMovies;
-    }
 }

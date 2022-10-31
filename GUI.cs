@@ -61,6 +61,7 @@ class GUI
 
                 if(selections.Count > 0)
                 {
+                    // SOMETHING WRONG IN INSERT
                     int newOrderId = Checkouthandler.LoanMovies(selections, activeCustomer);
 
                     Order newOrder = SqlWriter.sp_SelectObject<Order>("order_number, customer_id, total_price, order_date, final_return_date", "orders", "order_number", newOrderId);
@@ -70,7 +71,7 @@ class GUI
             }
             else if (keyPress.Key == ConsoleKey.D2)
             {
-                //ReturnMoviemenu();
+                // return movies
             }
             else if (keyPress.Key == ConsoleKey.D3)
             {
@@ -125,6 +126,7 @@ class GUI
         "title, is_old, current_stock, price_per_day",
         "movies", "movie_types", "movies.type_id = movie_types.id"
         );
+        // ERROR: DOES NOT DISPLAY CORRECT DATA
         List<Movie> displayChoices = SqlWriter.sp_SelectTable<Movie>("id, title, price_per_day", "movie_types");
 
         while (true)
