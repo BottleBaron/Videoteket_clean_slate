@@ -127,14 +127,14 @@ class GUI
         "movies", "movie_types", "movies.type_id = movie_types.id"
         );
         // ERROR: DOES NOT DISPLAY CORRECT DATA
-        List<Movie> displayChoices = SqlWriter.sp_SelectTable<Movie>("id, title, price_per_day", "movie_types");
+        List<Movietype> displayChoices = SqlWriter.sp_SelectTable<Movietype>("id, title, price_per_day", "movie_types");
 
         while (true)
         {
             Console.WriteLine("Please select a movie to loan. You may loan a maximum of one copy of each movie:");
             foreach (var movietype in displayChoices)
             {
-                Console.WriteLine($"[{movietype.type_id}]. {movietype.title} | {movietype.current_stock} |");
+                Console.WriteLine($"[{movietype.id}]. {movietype.title} | {movietype.current_stock} |");
             }
             Int32.TryParse(Console.ReadLine(), out int result);
             selections.Add(result);

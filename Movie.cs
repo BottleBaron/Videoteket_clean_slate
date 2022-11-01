@@ -1,13 +1,10 @@
-class Movie
+class Movie : Movietype
 {
     // DB Properties
     public int barcode_id { get; set; }
     public int type_id { get; set; }
     public int? order_id { get; set; }
-    public string? title { get; set; }
-    public bool is_old { get; set; }
-    public int current_stock { get; set; }
-    public int price_per_day { get; set; }
+
 
     // Runtime Properties
     public bool IsInStock { get; set; } = true;
