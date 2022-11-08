@@ -1,5 +1,8 @@
 using Dapper;
 using MySqlConnector;
+
+namespace Videoteket_clean_slate;
+
 static class SqlWriter
 {
     private static MySqlConnection DBConnection()
@@ -69,7 +72,6 @@ static class SqlWriter
             }
             catch (Exception e)
             {
-
                 throw e;
             }
         }
@@ -105,8 +107,8 @@ static class SqlWriter
     /// </summary>
     public static void sp_InsertInto(string table, string values)
     {
+        
         string query = $"INSERT INTO {table} VALUES ({values});";
-        Console.WriteLine(query);
 
         using (var connection = DBConnection())
         {
@@ -127,7 +129,7 @@ static class SqlWriter
     public static void sp_InsertInto(string table, string columns, string values)
     {
         string query = $"INSERT INTO {table} ({columns}) VALUES ({values});";
-        Console.WriteLine(query);
+        
 
         using (var connection = DBConnection())
         {
@@ -177,7 +179,8 @@ static class SqlWriter
         {
             if (ContainsExemptedValues(input)) return null;
 
-            formattedString += input + ',';
+            if (input != values.Last()) formattedString += input + ',';
+            else formattedString += input;
         }
         return formattedString;
     }

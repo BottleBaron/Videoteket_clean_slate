@@ -1,3 +1,5 @@
+namespace Videoteket_clean_slate;
+
 class Movie : Movietype
 {
     // DB Properties

@@ -1,3 +1,5 @@
+namespace Videoteket_clean_slate;
+
 static class Checkouthandler
 {
     /// <summary>
@@ -21,7 +23,7 @@ static class Checkouthandler
         foreach (var movie in selectedMovies)
         {
             SqlWriter.sp_UpdateTable("movies", $"movies.order_id = {listofOrderNumbers.Last().order_number}", $"movies.barcode_id = {movie.barcode_id}");
-            SqlWriter.sp_UpdateTable("movie_types", "current_stock - 1", $"id = {movie.type_id}");
+            SqlWriter.sp_UpdateTable("movie_types", "current_stock = current_stock - 1", $"id = {movie.type_id}");
         }
 
         return listofOrderNumbers.Last().order_number;
@@ -35,10 +37,9 @@ static class Checkouthandler
     {
         int returnPrice = 0;
 
-        List<Movie> rentedMovies = SqlWriter.ExplicitSqlQuery<Movie>($"SELECT type_id, order_id, title, price_per_day " +
-       $"FROM movies WHERE order_id = {orderToReturn.order_number} INNER JOIN movie_types ON movies.type_id = movie_types_id");
-
-
+        List<Movie> rentedMovies = SqlWriter.ExplicitSqlQuery<Movie>("SELECT barcode_id,type_id, order_id, title, price_per_day " + 
+                                                                     $"FROM movies INNER JOIN movie_types ON movies.type_id = movie_types.id WHERE order_id = {orderToReturn.order_number}");
+        
         if (DateTime.Now > orderToReturn.final_return_date)
         {
             foreach (var movie in rentedMovies)
@@ -50,11 +51,16 @@ static class Checkouthandler
                 if (daysSinceFinalReturn < 14) returnPrice += (movie.price_per_day * daysSinceFinalReturn);
 
                 else returnPrice += (movie.price_per_day * 14);
-
-                SqlWriter.sp_UpdateTable("movies", "order_id = NULL", $"barcode_id = {movie.barcode_id}");
-                SqlWriter.sp_UpdateTable("movie_types", "current_stock + 1", $"id = {movie.type_id}");
             }
         }
+
+        foreach (var movie in rentedMovies)
+        {
+            SqlWriter.sp_UpdateTable("orders", "orders.is_returned = true", $"order_number = {orderToReturn.order_number}");
+            SqlWriter.sp_UpdateTable("movies", "order_id = NULL", $"barcode_id = {movie.barcode_id}");
+            SqlWriter.sp_UpdateTable("movie_types", "current_stock = current_stock + 1", $"id = {movie.type_id}");
+        }
+        
         return returnPrice;
     }
 
@@ -66,12 +72,12 @@ static class Checkouthandler
         {
             if (id == customer.id) return customer;
         }
+        
         return null;
     }
 
     public static void CreateNewCustomer(string values)
     {
-        SqlWriter.sp_InsertInto("customers", values);
+        SqlWriter.sp_InsertInto("customers","first_name, last_name, email, telephone_number", values);
     }
 }
-

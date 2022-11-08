@@ -1,3 +1,5 @@
+namespace Videoteket_clean_slate;
+
 class Order
 {
     public int order_number { get; set; }
@@ -5,6 +7,7 @@ class Order
     public int total_price { get; set; }
     public DateTime order_date { get; set; }
     public DateTime final_return_date { get; set; }
+    public bool is_returned { get; set; }
 
     public override string ToString()
     {

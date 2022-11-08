@@ -1,3 +1,5 @@
+namespace Videoteket_clean_slate;
+
 class Customer
 {
     public int id { get; set; }
@@ -15,4 +17,11 @@ class Customer
         return $"{id} | {first_name} | {last_name} | {email} | {telephone_number}";
     }
 
+    public List<Order> GetOrders()
+    {
+        List<Order> orders = SqlWriter.sp_SelectTable<Order>("order_number, customer_id, total_price, order_date, final_return_date, is_returned", 
+            $"orders WHERE customer_id = {id}");
+
+        return orders;
+    }
 }

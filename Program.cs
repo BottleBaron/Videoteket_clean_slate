@@ -1,4 +1,6 @@
-﻿internal class Program
+﻿namespace Videoteket_clean_slate;
+
+internal class Program
 {
     private static void Main(string[] args)
     {

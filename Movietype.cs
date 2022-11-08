@@ -1,3 +1,5 @@
+namespace Videoteket_clean_slate;
+
 class Movietype
 {
     public int? id { get; set; }
@@ -6,4 +8,3 @@ class Movietype
     public int current_stock { get; set; }
     public int price_per_day { get; set; }
 }
-

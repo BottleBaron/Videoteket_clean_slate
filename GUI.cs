@@ -1,9 +1,15 @@
+
+using System.Threading.Channels;
+
+namespace Videoteket_clean_slate;
+
 class GUI
 {
     private Customer activeCustomer = new();
 
     public void Init()
     {
+        Console.Clear();
         Console.WriteLine("Welcome to -<Videoteket>- \nPress any button to login...");
         Console.ReadKey();
 
@@ -17,7 +23,8 @@ class GUI
 
             // Create new account and login with new id
             else if (input == "s")
-            {
+            {        
+
                 int newId = SignUpMenu();
 
                 if (newId == 0) continue;
@@ -42,6 +49,7 @@ class GUI
     {
         while (true)
         {
+            Console.Clear();
             string[] mainmenu = new string[]
             {
                 "----<VIDEOTEKET>----",
@@ -55,27 +63,60 @@ class GUI
             }
             var keyPress = Console.ReadKey();
 
-            if (keyPress.Key == ConsoleKey.D1)
+            switch (keyPress.Key)
             {
-                List<Movie> selections = LoanMovieMenu();
-
-                if(selections.Count > 0)
+                case ConsoleKey.D1:
                 {
-                    // SOMETHING WRONG IN INSERT
-                    int newOrderId = Checkouthandler.LoanMovies(selections, activeCustomer);
+                    List<Movie> selections = LoanMovieMenu();
 
-                    Order newOrder = SqlWriter.sp_SelectObject<Order>("order_number, customer_id, total_price, order_date, final_return_date", "orders", "order_number", newOrderId);
+                    if(selections.Count > 0)
+                    {
+                        int newOrderId = Checkouthandler.LoanMovies(selections, activeCustomer);
 
-                    string recieptString = PrintReciept(newOrder, false);
-                }  
+                        Order newOrder = SqlWriter.sp_SelectObject<Order>("order_number, customer_id, total_price, order_date, final_return_date", "orders", "order_number", newOrderId);
+
+                        string recieptString = PrintReciept(newOrder);
+
+                        Console.WriteLine(recieptString);
+                        Console.ReadKey();
+                    }
+                    break;
+                }
+                case ConsoleKey.D2:
+                    ReturnMoviesMenu();
+                    break;
+                case ConsoleKey.D3:
+                    Environment.Exit(0);
+                    break;
             }
-            else if (keyPress.Key == ConsoleKey.D2)
+        }
+    }
+
+    private void ReturnMoviesMenu()
+    {
+        List<Order> yourOrders = activeCustomer.GetOrders();
+
+        Console.WriteLine("Select an order to return.");
+        foreach (var order in yourOrders)
+        {
+            if (!order.is_returned)
             {
-                // return movies
+                Console.WriteLine(PrintReciept(order));
+                Console.WriteLine("-----------------------------------");
             }
-            else if (keyPress.Key == ConsoleKey.D3)
+        }
+
+        Console.Write("ORDER NUMBER: ");
+        var input = Console.ReadLine();
+
+        foreach (var order in yourOrders)
+        {
+            if (input == order.order_number.ToString() && !order.is_returned)
             {
-                Environment.Exit(0);
+                int? debitedPrice = Checkouthandler.ReturnMovies(order);
+                Console.WriteLine($"Success. Your order was returned! {debitedPrice} kr in overdue price will be debited to your account");
+                Console.ReadKey();
+                break;
             }
         }
     }
@@ -86,26 +127,26 @@ class GUI
 
         Console.Clear();
         Console.Write("Please enter your first name: ");
-        customerData.Add(Console.ReadLine());
+        customerData.Add("'" + Console.ReadLine() + "'");
 
         Console.Write("Please enter your last name: ");
-        customerData.Add(Console.ReadLine());
+        customerData.Add("'" + Console.ReadLine() + "'");
 
         Console.Write("Please enter your email: ");
-        customerData.Add(Console.ReadLine());
+        customerData.Add("'" + Console.ReadLine() + "'");
 
-        Console.WriteLine("Please enter your telephone number: ");
-        customerData.Add(Console.ReadLine());
+        Console.Write("Please enter your telephone number: ");
+        customerData.Add("'" + Console.ReadLine() + "'");
 
-        string Sqlstring = SqlWriter.FormatIntoSqlString(customerData);
+        string? sqlString = SqlWriter.FormatIntoSqlString(customerData);
 
         Console.Clear();
-        if (Sqlstring != null)
+        if (sqlString != null)
         {
             Console.Write("Success! Account created.\nPress any key to log into your new account:");
             Console.ReadKey();
 
-            Checkouthandler.CreateNewCustomer(Sqlstring);
+            Checkouthandler.CreateNewCustomer(sqlString);
             List<Customer> listOfCustomerIds = SqlWriter.sp_SelectTable<Customer>("id", "customers");
             return listOfCustomerIds.Last().id;
         }
@@ -122,24 +163,25 @@ class GUI
         List<Movie> selectedMovies = new();
         List<int> selections = new();
         List<Movie> listAllMovies = SqlWriter.sp_InnerJoinTables<Movie>(
-        "barcode_id, customer_id, order_id",
-        "title, is_old, current_stock, price_per_day",
-        "movies", "movie_types", "movies.type_id = movie_types.id"
+            "barcode_id, type_id, order_id",
+            "title, is_old, current_stock, price_per_day",
+            "movies", "movie_types", "movies.type_id = movie_types.id"
         );
-        // ERROR: DOES NOT DISPLAY CORRECT DATA
-        List<Movietype> displayChoices = SqlWriter.sp_SelectTable<Movietype>("id, title, price_per_day", "movie_types");
+        
+        List<Movietype> displayChoices = SqlWriter.sp_SelectTable<Movietype>("id, title, price_per_day, current_stock", "movie_types");
 
         while (true)
         {
             Console.WriteLine("Please select a movie to loan. You may loan a maximum of one copy of each movie:");
             foreach (var movietype in displayChoices)
             {
-                Console.WriteLine($"[{movietype.id}]. {movietype.title} | {movietype.current_stock} |");
+                if(movietype.current_stock > 0)
+                    Console.WriteLine($"[{movietype.id}]. {movietype.title} | {movietype.price_per_day} kr / day | Stock: {movietype.current_stock} |");
             }
             Int32.TryParse(Console.ReadLine(), out int result);
             selections.Add(result);
 
-        anchor:
+            anchor:
 
             Console.WriteLine("Would you like to add another movie? (Y/N)");
             var keyPress = Console.ReadKey();
@@ -149,25 +191,24 @@ class GUI
             else goto anchor;
         }
 
-        foreach (var number in selections)
+        var singleSelectionsList = selections.Distinct().ToList();
+        
+        foreach ( var number in singleSelectionsList)
         {
-            // Removes movie doublettes
-            foreach (var movie in selectedMovies)
-            {
-                if (number == movie.type_id) selections.Remove(number);
-            }
-
             foreach (var movie in listAllMovies)
             {
                 if (movie.current_stock > 0 && number == movie.type_id)
+                {
                     selectedMovies.Add(movie);
+                    break;
+                }
             }
         }
 
         return selectedMovies;
     }
 
-    private string PrintReciept(Order orderToPrint, bool isReturn)
+    private string PrintReciept(Order orderToPrint)
     {
         string recieptString = "-- RECIEPT --\n";
 
@@ -176,7 +217,7 @@ class GUI
         recieptString += $"\nORDER DATE: {orderToPrint.order_date} || FINAL RETURN DATE: {orderToPrint.final_return_date}\n"; 
 
         List<Movie> rentedMovies = SqlWriter.ExplicitSqlQuery<Movie>($"SELECT type_id, order_id, title, price_per_day " +
-        $"FROM movies WHERE order_id = {orderToPrint.order_number} INNER JOIN movie_types ON movies.type_id = movie_types_id");
+                                                                     $"FROM movies INNER JOIN movie_types ON movies.type_id = movie_types.id WHERE order_id = {orderToPrint.order_number}");
 
         foreach (var movie in rentedMovies)
         {
@@ -185,8 +226,8 @@ class GUI
 
         recieptString += $"\nTOTAL PRICE: {orderToPrint.total_price}\n";
 
-        if(isReturn) recieptString += "RETURNED [x]";
-        else recieptString += "RETURNED [x]";
+        if(orderToPrint.is_returned) recieptString += "RETURNED [x]";
+        else recieptString += "RETURNED [ ]";
 
         return recieptString;
     }
